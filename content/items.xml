@@ -1,7 +1,7 @@
-<items gfxroot="gfx/" version="1">
+<items gfxroot="gfx/items/" version="1">
   <active name="Minesweeper's Shovel"
     description="Digging up trouble"
-    gfx="minesweepers_shovel.png"
+    gfx="shovel.png"
     maxcharges="0"
     tags="nocantrip quest"
     hidden="true"
@@ -9,7 +9,7 @@
   />
   <active name="Minesweeper's Flag"
     description="Proceed with caution"
-    gfx="minesweepers_flag.png"
+    gfx="flag.png"
     maxcharges="0"
     tags="nocantrip quest"
     hidden="true"
