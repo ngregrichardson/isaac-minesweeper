@@ -72,7 +72,8 @@ local function CreateBlankCell(x, y)
         isFlagged = false,
         isMine = false,
         isRevealed = false,
-        touchingMines = 0
+        touchingMines = 0,
+        hasVisited = false
     }
 end
 
@@ -90,7 +91,7 @@ function M.GenerateMinesweeperGrid(size, numMines)
     local mineLocations = GenerateMineLayout(size, numMines)
     
     for _, cell in pairs(mineLocations) do
-        local mineCell = grid[cell.x][cell.y]
+        local mineCell = grid[cell.y][cell.x]
         mineCell.isMine = true
         
         local neighboringCells = {}
@@ -151,6 +152,31 @@ function M.CalculateScore(grid)
     end
 
     return score
+end
+
+function M.RevealNeighboringZeros(grid, cell)
+    if not cell.isMine then
+        if cell and not cell.isRevealed then
+            cell.isRevealed = true
+            if cell.touchingMines == 0 then
+                if cell.x > 1 then
+                    M.RevealNeighboringZeros(grid, grid[cell.y][cell.x - 1])
+                end
+
+                if cell.y > 1 then
+                    M.RevealNeighboringZeros(grid, grid[cell.y - 1][cell.x])
+                end
+
+                if cell.y < #grid then
+                    M.RevealNeighboringZeros(grid, grid[cell.y + 1][cell.x])
+                end
+
+                if cell.x < #grid[1] then
+                    M.RevealNeighboringZeros(grid, grid[cell.y][cell.x + 1])
+                end
+            end
+        end
+    end
 end
 
 function M.HasWon(grid)

@@ -1,4 +1,5 @@
 local helpers = include("helpers")
+local minesweeper = include("minesweeper")
 
 local Name = "Minesweeper's Shovel"
 local Tag = "minesweepersShovel"
@@ -7,7 +8,7 @@ local Id = Isaac.GetItemIdByName(Name)
 local function MC_USE_ITEM(_, type, rng, p)
     if minesweeperData.hasWon or minesweeperData.hasLost then return end
 
-    local currentCell = minesweeperData.grid[minesweeperData.currentRoom.x][minesweeperData.currentRoom.y]
+    local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
 
     if currentCell.isFlagged then
         SFXManager():Play(SoundEffect.SOUND_BOSS2INTRO_ERRORBUZZ)
@@ -20,6 +21,7 @@ local function MC_USE_ITEM(_, type, rng, p)
         helpers.CloseDoors()
         helpers.ExplodeRoom()
     else
+        minesweeper.RevealNeighboringZeros(minesweeperData.grid, currentCell)
         currentCell.isRevealed = true
     end
 

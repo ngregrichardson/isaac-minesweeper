@@ -4,7 +4,7 @@ local Id = Isaac.GetItemIdByName(Name)
 
 local function MC_USE_ITEM(_, type, rng, p)
     if minesweeperData.hasWon or minesweeperData.hasLost then return end
-    local currentCell = minesweeperData.grid[minesweeperData.currentRoom.x][minesweeperData.currentRoom.y]
+    local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
 
     currentCell.isFlagged = not currentCell.isFlagged
 end
