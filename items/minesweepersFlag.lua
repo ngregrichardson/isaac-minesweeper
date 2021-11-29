@@ -3,8 +3,8 @@ local Tag = "minesweepersFlag"
 local Id = Isaac.GetItemIdByName(Name)
 
 local function MC_USE_ITEM(_, type, rng, p)
-    if minesweeperData.hasWon or minesweeperData.hasLost then return end
     local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
+    if currentCell.isRevealed or minesweeperData.hasWon or minesweeperData.hasLost then return end
 
     currentCell.isFlagged = not currentCell.isFlagged
 end

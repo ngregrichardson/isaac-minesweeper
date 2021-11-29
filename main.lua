@@ -152,7 +152,7 @@ minesweeperMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, function()
     if minesweeperData.currentRoom and minesweeperData.currentRoom.direction ~= -1 then
         helpers.ForEachPlayer(function(p)
             p.Position = directionSpawnPositions[minesweeperData.currentRoom.direction + 1]
-        end) 
+        end)
     end
 end)
 
@@ -170,10 +170,6 @@ end, 678)
 minesweeperMod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
     if minesweeperData.currentRoom then
         local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
-
-        if currentCell.isFlagged then
-            Isaac.RenderText("Room is flagged!", 50, 65, 1, 1, 1, 1)
-        end
 
         local screenSize = Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())
 
@@ -219,13 +215,7 @@ minesweeperMod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
         helpers.RenderCenteredText(timerDisplay, screenSize.X - (screenSize.X  * TOP_HUD_WIDTH), TOP_HUD_OFFSET, TOP_HUD_FONT_SIZE, KColor(1, 0, 0, 1))
 
         -- Items
-        if not minesweeperData.hasWon and not minesweeperData.hasLost then
-            if currentCell.isRevealed then
-                minesweeperHUDAnimations.flag.Color = Color(minesweeperHUDAnimations.flag.Color.R, minesweeperHUDAnimations.flag.Color.G, minesweeperHUDAnimations.flag.Color.B, 0.3)
-            else
-                minesweeperHUDAnimations.flag.Color = Color(minesweeperHUDAnimations.flag.Color.R, minesweeperHUDAnimations.flag.Color.G, minesweeperHUDAnimations.flag.Color.B, 1)
-            end
-
+        if not currentCell.isRevealed and not minesweeperData.hasWon and not minesweeperData.hasLost then
             if currentCell.isFlagged then
                 minesweeperHUDAnimations.shovel.Color = Color(minesweeperHUDAnimations.shovel.Color.R, minesweeperHUDAnimations.shovel.Color.G, minesweeperHUDAnimations.shovel.Color.B, 0.3)
             else
@@ -290,10 +280,10 @@ minesweeperMod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
                     end
 
                     cell.mapCellSprite.Scale = Vector(scale, scale)
-                    cell.mapCellIconSprite.Scale = Vector(scale, scale)
+                    cell.mapCellIconSprite.Scale = Vector(scale * 0.9, scale * 0.9)
 
                     cell.mapCellSprite:Render(cellPosition)
-                    cell.mapCellIconSprite:Render(cellPosition)
+                    cell.mapCellIconSprite:Render(cellPosition - Vector(0, 0.5))
                 end
             end
         end

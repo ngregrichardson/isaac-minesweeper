@@ -39,6 +39,7 @@ function H.SpawnDoor(doorSlot, x, y)
     coolDoor:GetData().nextRoom = { x = x, y = y, direction = doorSlot }
     coolDoor:ClearEntityFlags(EntityFlag.FLAG_APPEAR)
     coolDoor.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_NONE
+    coolDoor.DepthOffset = -10000
 
     return coolDoor
 end

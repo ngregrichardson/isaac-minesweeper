@@ -6,9 +6,8 @@ local Tag = "minesweepersShovel"
 local Id = Isaac.GetItemIdByName(Name)
 
 local function MC_USE_ITEM(_, type, rng, p)
-    if minesweeperData.hasWon or minesweeperData.hasLost then return end
-
     local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
+    if currentCell.isRevealed or minesweeperData.hasWon or minesweeperData.hasLost then return end
 
     if currentCell.isFlagged then
         SFXManager():Play(SoundEffect.SOUND_BOSS2INTRO_ERRORBUZZ)
