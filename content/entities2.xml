@@ -2,4 +2,7 @@
   <entity anm2path="grid/door_01_normaldoor.anm2" id="678" name="Minesweeper Door" baseHP="0" variant="0" subtype="0" numGridCollisionPoints="0" friction="0" collisionRadius="5" >
     <gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0" />
   </entity>
+  <entity anm2path="floor_tiles.anm2" id="679" name="Minesweeper Floor" baseHP="0" variant="0" subtype="0" numGridCollisionPoints="0" friction="0" collisionRadius="0" >
+    <gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0" />
+  </entity>
 </entities>
