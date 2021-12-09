@@ -18,7 +18,7 @@ for _, item in pairs(items) do
 end
 
 local SIZE = 10
-local NUM_MINES = 4
+local NUM_MINES = 99
 
 local TOP_HUD_OFFSET = 35
 local TOP_HUD_WIDTH = 1 / 2.5
@@ -35,13 +35,14 @@ minesweeperData = {
     currentRoom = nil,
     timer = 0,
     hasWon = false,
-    hasLost = false
+    hasLost = false,
+    isMapEnlarged = false,
+    hasSpawnedTrophy = false
 }
 
 minesweeperHUDAnimations = {
     mapBorderXAnimations = {},
     mapBorderYAnimations = {},
-    mapBorderCornerAnimations = {}
 }
 
 local directionSpawnPositions = {
@@ -60,7 +61,7 @@ local function InitializeGrid()
     minesweeperData.currentRoom = { x = rng:RandomInt(SIZE) + 1, y = rng:RandomInt(SIZE) + 1, direction = Direction.NO_DIRECTION }
 end
 
-minesweeperMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, function(_, isContinued)
+local function InitializeGame(isContinued)
     local game = Game()
     rng:SetSeed(game:GetSeeds():GetStartSeed(), 35)
 
@@ -71,8 +72,7 @@ minesweeperMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, function(_, isCont
     local p = Isaac.GetPlayer(0)
     p:AddCollectible(items.minesweepersShovel.Id)
     p:SetPocketActiveItem(items.minesweepersFlag.Id, ActiveSlot.SLOT_POCKET, true)
-    -- p:AddMaxHearts(-4)
-    -- p:AddHearts(-1)
+    -- p:AddMaxHearts(-5)
 
     local saveData = helpers.LoadData()
 
@@ -95,20 +95,19 @@ minesweeperMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, function(_, isCont
         end
     end
 
-    for i = 0, MAP_NUMBER_OF_EDGES do
+    for i = 0, SIZE * 2 do
         table.insert(minesweeperHUDAnimations.mapBorderXAnimations, helpers.RegisterSprite("gfx/ui/map_background.anm2", nil, "CellXBorder"))
-    end
-
-    for i = 0, MAP_NUMBER_OF_EDGES do
         table.insert(minesweeperHUDAnimations.mapBorderYAnimations, helpers.RegisterSprite("gfx/ui/map_background.anm2", nil, "CellYBorder"))
     end
+end
 
-    for i = 0, 4 do
-        table.insert(minesweeperHUDAnimations.mapBorderCornerAnimations, helpers.RegisterSprite("gfx/ui/map_background.anm2", nil, "CellCornerBorder"))
+minesweeperMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, function(_, isContinued)
+    if helpers.IsInChallenge() then
+        InitializeGame(isContinued)
     end
 end)
 
-minesweeperMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, function()
+local function InitializeRoom()
     local room = Game():GetRoom()
 
     for i = 0, DoorSlot.NUM_DOOR_SLOTS - 1 do
@@ -154,24 +153,204 @@ minesweeperMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, function()
             p.Position = directionSpawnPositions[minesweeperData.currentRoom.direction + 1]
         end)
     end
+
+    local floorTile = Isaac.Spawn(Isaac.GetEntityTypeByName("Minesweeper Floor"), 0, 0, room:GetCenterPos(), Vector.Zero, nil)
+    floorTile.EntityCollisionClass = EntityCollisionClass.ENTCOLL_NONE
+    floorTile.DepthOffset = -10000
+    floorTile:AddEntityFlags(EntityFlag.FLAG_NO_BLOOD_SPLASH | EntityFlag.FLAG_NO_FLASH_ON_DAMAGE | EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK | EntityFlag.FLAG_NO_KNOCKBACK)
+    floorTile:ClearEntityFlags(EntityFlag.FLAG_APPEAR)
+
+    if currentCell.isRevealed then
+        if not currentCell.isMine and currentCell.touchingMines > 0 then
+            local floorTileSprite = floorTile:GetSprite()
+            floorTileSprite:ReplaceSpritesheet(1, "gfx/floor"..currentCell.touchingMines..".png")
+            floorTileSprite:LoadGraphics()
+            floorTileSprite:Play("Revealed")
+        end
+    end
+
+    if currentCell.isFlagged then
+        local flag = Isaac.Spawn(EntityType.ENTITY_EFFECT, Isaac.GetEntityVariantByName("Minesweeper Flag"), 0, room:GetCenterPos(), Vector.Zero, nil)
+        flag:AddEntityFlags(EntityFlag.FLAG_NO_BLOOD_SPLASH | EntityFlag.FLAG_NO_FLASH_ON_DAMAGE | EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK | EntityFlag.FLAG_NO_KNOCKBACK)
+        flag:ClearEntityFlags(EntityFlag.FLAG_APPEAR)
+        local flagSprite = flag:GetSprite()
+        flagSprite:Play("Idle")
+    end
+end
+
+minesweeperMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, function()
+    if helpers.IsInChallenge() then
+        InitializeRoom()
+    end
 end)
 
 minesweeperMod:AddCallback(ModCallbacks.MC_PRE_NPC_COLLISION, function(_, entity, collider)
-    local p = collider:ToPlayer()
-    if p then
-        local data = entity:GetData()
-        if not data.isClosed then
-            minesweeperData.currentRoom = data.nextRoom
-            Isaac.ExecuteCommand("goto d.".."2500")
+    if helpers.IsInChallenge() then
+        local p = collider:ToPlayer()
+        if p then
+            local data = entity:GetData()
+            if not data.isClosed then
+                minesweeperData.currentRoom = data.nextRoom
+                Isaac.ExecuteCommand("goto d.".."2500")
+            end
         end
     end
 end, 678)
 
 minesweeperMod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
-    if minesweeperData.currentRoom then
+    if helpers.IsInChallenge() and minesweeperData.currentRoom then
         local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
 
         local screenSize = Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())
+
+        if Input.IsActionTriggered(ButtonAction.ACTION_MAP, 0) then
+            minesweeperData.isMapEnlarged = not minesweeperData.isMapEnlarged
+        end
+
+        local isMapEnlarged = minesweeperData.isMapEnlarged
+
+        -- Items
+        if not currentCell.isRevealed and not minesweeperData.hasWon and not minesweeperData.hasLost then
+            if currentCell.isFlagged then
+                minesweeperHUDAnimations.shovel.Color = Color(minesweeperHUDAnimations.shovel.Color.R, minesweeperHUDAnimations.shovel.Color.G, minesweeperHUDAnimations.shovel.Color.B, 0.3)
+            else
+                minesweeperHUDAnimations.shovel.Color = Color(minesweeperHUDAnimations.shovel.Color.R, minesweeperHUDAnimations.shovel.Color.G, minesweeperHUDAnimations.shovel.Color.B, 1)
+            end
+
+            minesweeperHUDAnimations.flag:Render(screenSize - Vector(20, 20))
+            minesweeperHUDAnimations.shovel:Render(screenSize - Vector(60, 20))
+        end
+
+        -- Map
+
+        local scale = 1
+
+        if isMapEnlarged then
+            scale = 2
+        end
+
+        local scaledCellWidth = MAP_ROOM_WIDTH * scale
+        local scaledCellHeight = MAP_ROOM_HEIGHT * scale
+
+        local xPadding = (MAP_RADIUS_WITH_CUTOFF + 1) * scaledCellWidth
+        local yPadding = (MAP_RADIUS_WITH_CUTOFF + 1) * scaledCellHeight
+        local centerOfMap = Vector(screenSize.X - xPadding, yPadding)
+        local numberOfCellsAroundCenter = MAP_RADIUS_WITH_CUTOFF
+
+        if isMapEnlarged then
+            centerOfMap = screenSize / 2
+            numberOfCellsAroundCenter = SIZE / 2 - 0.5
+        end
+
+        for _, col in pairs(minesweeperData.grid) do
+            for _, cell in pairs(col) do
+
+                local xDiff = cell.x - currentCell.x
+                local yDiff = cell.y - currentCell.y
+
+                if isMapEnlarged or math.abs(xDiff) <= numberOfCellsAroundCenter and math.abs(yDiff) <= numberOfCellsAroundCenter then
+
+                    local cellPosition = Vector(centerOfMap.X + xDiff * scaledCellWidth - 0.5, centerOfMap.Y + yDiff * scaledCellHeight)
+
+                    if isMapEnlarged and SIZE % 2 == 0 then
+                        local cellPositionX = centerOfMap.X - (((SIZE / 2) - (cell.x - 1)) * scaledCellWidth - (scaledCellWidth / 2))
+                        local cellPositionY = centerOfMap.Y - (((SIZE / 2) - (cell.y - 1)) * scaledCellHeight - (scaledCellHeight / 2))
+                        
+                        cellPosition = Vector(cellPositionX, cellPositionY)
+                    end
+
+                    local isCurrent = xDiff == 0 and yDiff == 0
+
+                    local suffix = "Small"
+
+                    if isMapEnlarged then
+                        suffix = ""
+                    end
+
+                    if not isCurrent then
+                        cell.mapCellSprite:Play("Visited"..suffix)
+                    end
+
+                    if cell.isFlagged then
+                        cell.mapCellIconSprite:Play("Flag")
+                    elseif cell.isRevealed then
+                        cell.mapCellSprite:Play("Unvisited"..suffix)
+                        cell.mapCellIconSprite:Play(tostring(cell.touchingMines))
+                    else
+                        cell.mapCellIconSprite:Play("None")
+                    end
+
+                    if cell.isMine and minesweeperData.hasLost and not cell.isFlagged then
+                        cell.mapCellSprite:Play("Unvisited"..suffix)
+                        if isCurrent and cell.mapCellSprite.Color then
+                            local color = cell.mapCellSprite.Color
+                            local newColor = Color(color.R, color.G, color.B, color.A)
+                            newColor:SetTint(1, 0, 0, 0.8)
+                            cell.mapCellSprite.Color = newColor
+                        end
+                        cell.mapCellIconSprite:Play("Mine")
+                    end
+
+                    if isCurrent then
+                        cell.mapCellSprite:Play("Current"..suffix)
+                    end
+
+                    if isMapEnlarged then
+                        cell.mapCellSprite.Color = Color(cell.mapCellSprite.Color.R, cell.mapCellSprite.Color.G, cell.mapCellSprite.Color.B, 0.9)
+                    end
+
+                    cell.mapCellSprite:Render(cellPosition)
+                    cell.mapCellIconSprite:Render(cellPosition - Vector(0, 0.5))
+                end
+            end
+        end
+
+        -- Map border
+
+        local numOfEdges = MAP_NUMBER_OF_EDGES / 2
+
+        if isMapEnlarged then
+            numOfEdges = SIZE / 2 - 1
+        end
+
+        for i = -numberOfCellsAroundCenter, numberOfCellsAroundCenter do
+            local index = i + numberOfCellsAroundCenter + 1
+            local negativeIndex = math.floor(index + numOfEdges)
+
+            local xOffset = numberOfCellsAroundCenter * scaledCellWidth + ((scaledCellWidth / 2) - 1)
+            local yOffset = i * scaledCellHeight
+
+            minesweeperHUDAnimations.mapBorderXAnimations[index].Scale = Vector(1, scale)
+            minesweeperHUDAnimations.mapBorderXAnimations[negativeIndex].Scale = Vector(1, scale)
+
+            minesweeperHUDAnimations.mapBorderXAnimations[index]:Render(Vector(centerOfMap.X + xOffset, centerOfMap.Y + yOffset))
+            minesweeperHUDAnimations.mapBorderXAnimations[negativeIndex]:Render(Vector(centerOfMap.X - xOffset, centerOfMap.Y + yOffset))
+        end
+
+        for i = -numberOfCellsAroundCenter, numberOfCellsAroundCenter do
+            local index = i + numberOfCellsAroundCenter + 1
+            local negativeIndex = math.floor(index + numOfEdges)
+
+            local xOffset = i * scaledCellWidth
+            local yOffset = numberOfCellsAroundCenter * scaledCellHeight + ((scaledCellHeight / 2) - 1)
+
+            minesweeperHUDAnimations.mapBorderYAnimations[index].Scale = Vector(scale, 1)
+            minesweeperHUDAnimations.mapBorderYAnimations[negativeIndex].Scale = Vector(scale, 1)
+
+            local padding = 0.5
+            if isMapEnlarged then
+                padding = 1
+            end
+
+            minesweeperHUDAnimations.mapBorderYAnimations[index]:Render(Vector(centerOfMap.X + xOffset - padding, centerOfMap.Y + yOffset))
+            minesweeperHUDAnimations.mapBorderYAnimations[negativeIndex]:Render(Vector(centerOfMap.X + xOffset - padding, centerOfMap.Y - yOffset))
+        end
+
+        local hudOpacity = 1
+
+        if isMapEnlarged then
+            hudOpacity = 0.5
+        end
 
         -- Render score
         local score
@@ -198,9 +377,11 @@ minesweeperMod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
         else
             scoreDisplay = score
         end
-        helpers.RenderCenteredText(scoreDisplay, screenSize.X * TOP_HUD_WIDTH, TOP_HUD_OFFSET, TOP_HUD_FONT_SIZE, KColor(1, 0, 0, 1))
+        helpers.RenderCenteredText(scoreDisplay, screenSize.X * TOP_HUD_WIDTH, TOP_HUD_OFFSET, TOP_HUD_FONT_SIZE, KColor(1, 0, 0, hudOpacity))
 
         -- Smiley
+        local smileyColor = minesweeperHUDAnimations.smiley.Color
+        minesweeperHUDAnimations.smiley.Color = Color(smileyColor.R, smileyColor.G, smileyColor.B, hudOpacity)
         minesweeperHUDAnimations.smiley:Render(Vector(screenSize.X / 2, TOP_HUD_OFFSET / 2))
 
         -- Render timer
@@ -212,157 +393,72 @@ minesweeperMod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
         else
             timerDisplay = minesweeperData.timer
         end
-        helpers.RenderCenteredText(timerDisplay, screenSize.X - (screenSize.X  * TOP_HUD_WIDTH), TOP_HUD_OFFSET, TOP_HUD_FONT_SIZE, KColor(1, 0, 0, 1))
-
-        -- Items
-        if not currentCell.isRevealed and not minesweeperData.hasWon and not minesweeperData.hasLost then
-            if currentCell.isFlagged then
-                minesweeperHUDAnimations.shovel.Color = Color(minesweeperHUDAnimations.shovel.Color.R, minesweeperHUDAnimations.shovel.Color.G, minesweeperHUDAnimations.shovel.Color.B, 0.3)
-            else
-                minesweeperHUDAnimations.shovel.Color = Color(minesweeperHUDAnimations.shovel.Color.R, minesweeperHUDAnimations.shovel.Color.G, minesweeperHUDAnimations.shovel.Color.B, 1)
-            end
-
-            minesweeperHUDAnimations.flag:Render(screenSize - Vector(20, 20))
-            minesweeperHUDAnimations.shovel:Render(screenSize - Vector(60, 20))
-        end
-
-        -- Map
-        local isMapEnlarged = Input.IsActionPressed(ButtonAction.ACTION_MAP, 0)
-
-        local scale = 1
-
-        if isMapEnlarged then
-            scale = 2
-        end
-
-        local scaledCellWidth = MAP_ROOM_WIDTH * scale
-        local scaledCellHeight = MAP_ROOM_HEIGHT * scale
-
-        local xPadding = (MAP_RADIUS_WITH_CUTOFF + 1) * scaledCellWidth
-        local yPadding = (MAP_RADIUS_WITH_CUTOFF + 1) * scaledCellHeight
-        local centerOfMap = Vector(screenSize.X - xPadding, yPadding)
-
-        for _, col in pairs(minesweeperData.grid) do
-            for _, cell in pairs(col) do
-
-                local xDiff = cell.x - currentCell.x
-                local yDiff = cell.y - currentCell.y
-
-                if math.abs(xDiff) <= MAP_RADIUS_WITH_CUTOFF and math.abs(yDiff) <= MAP_RADIUS_WITH_CUTOFF then
-
-                    local cellPosition = Vector(centerOfMap.X + xDiff * scaledCellWidth - 0.5, centerOfMap.Y + yDiff * scaledCellHeight)
-
-                    local isCurrent = xDiff == 0 and yDiff == 0
-
-                    if not isCurrent then
-                        cell.mapCellSprite:Play("VisitedSmall")
-                    end
-
-                    if cell.isFlagged then
-                        cell.mapCellIconSprite:Play("Flag")
-                    elseif cell.isRevealed then
-                        cell.mapCellSprite:Play("UnvisitedSmall")
-                        cell.mapCellIconSprite:Play(tostring(cell.touchingMines))
-                    else
-                        cell.mapCellIconSprite:Play("None")
-                    end
-
-                    if cell.isMine and minesweeperData.hasLost and not cell.isFlagged then
-                        cell.mapCellSprite:Play("UnvisitedSmall")
-                        if isCurrent then
-                            cell.mapCellSprite.Color:SetTint(1, 0, 0, 0.8)
-                        end
-                        cell.mapCellIconSprite:Play("Mine")
-                    end
-
-                    if isCurrent then
-                        cell.mapCellSprite:Play("CurrentSmall")
-                    end
-
-                    cell.mapCellSprite.Scale = Vector(scale, scale)
-                    cell.mapCellIconSprite.Scale = Vector(scale * 0.9, scale * 0.9)
-
-                    cell.mapCellSprite:Render(cellPosition)
-                    cell.mapCellIconSprite:Render(cellPosition - Vector(0, 0.5))
-                end
-            end
-        end
-
-        -- Map border
-
-        for i = -MAP_RADIUS_WITH_CUTOFF, MAP_RADIUS_WITH_CUTOFF do
-            local index = i + MAP_RADIUS_WITH_CUTOFF + 1
-            local negativeIndex = math.floor(index + MAP_NUMBER_OF_EDGES / 2)
-
-            local xOffset = MAP_RADIUS_WITH_CUTOFF * scaledCellWidth + ((scaledCellWidth / 2) - 1)
-            local yOffset = i * scaledCellHeight
-
-            minesweeperHUDAnimations.mapBorderXAnimations[index].Scale = Vector(scale, scale)
-            minesweeperHUDAnimations.mapBorderXAnimations[negativeIndex].Scale = Vector(scale, scale)
-
-            minesweeperHUDAnimations.mapBorderXAnimations[index]:Render(Vector(centerOfMap.X + xOffset, centerOfMap.Y + yOffset))
-            minesweeperHUDAnimations.mapBorderXAnimations[negativeIndex]:Render(Vector(centerOfMap.X - xOffset, centerOfMap.Y + yOffset))
-        end
-
-        for i = -MAP_RADIUS_WITH_CUTOFF, MAP_RADIUS_WITH_CUTOFF do
-            local index = i + MAP_RADIUS_WITH_CUTOFF + 1
-            local negativeIndex = math.floor(index + MAP_NUMBER_OF_EDGES / 2)
-
-            local xOffset = i * scaledCellWidth
-            local yOffset = MAP_RADIUS_WITH_CUTOFF * scaledCellHeight + ((scaledCellHeight / 2) - 1)
-
-            minesweeperHUDAnimations.mapBorderYAnimations[index].Scale = Vector(scale, scale)
-            minesweeperHUDAnimations.mapBorderYAnimations[negativeIndex].Scale = Vector(scale, scale)
-
-            minesweeperHUDAnimations.mapBorderYAnimations[index]:Render(Vector(centerOfMap.X + xOffset - 0.5, centerOfMap.Y + yOffset))
-            minesweeperHUDAnimations.mapBorderYAnimations[negativeIndex]:Render(Vector(centerOfMap.X + xOffset - 0.5, centerOfMap.Y - yOffset))
-        end
-
-        local cornerXOffset = (MAP_RADIUS_WITH_CUTOFF * scaledCellWidth) + ((scaledCellWidth / 2) - 1)
-        local cornerYOffset = (MAP_RADIUS_WITH_CUTOFF * scaledCellHeight) + ((scaledCellHeight / 2) - 1)
-
-        minesweeperHUDAnimations.mapBorderCornerAnimations[1].Scale = Vector(scale, scale)
-        minesweeperHUDAnimations.mapBorderCornerAnimations[2].Scale = Vector(scale, scale)
-        minesweeperHUDAnimations.mapBorderCornerAnimations[3].Scale = Vector(scale, scale)
-        minesweeperHUDAnimations.mapBorderCornerAnimations[4].Scale = Vector(scale, scale)
-
-        minesweeperHUDAnimations.mapBorderCornerAnimations[1]:Render(Vector(centerOfMap.X + cornerXOffset, centerOfMap.Y + cornerYOffset))
-        minesweeperHUDAnimations.mapBorderCornerAnimations[2]:Render(Vector(centerOfMap.X - cornerXOffset, centerOfMap.Y + cornerYOffset))
-        minesweeperHUDAnimations.mapBorderCornerAnimations[3]:Render(Vector(centerOfMap.X + cornerXOffset, centerOfMap.Y - cornerYOffset))
-        minesweeperHUDAnimations.mapBorderCornerAnimations[4]:Render(Vector(centerOfMap.X - cornerXOffset, centerOfMap.Y - cornerYOffset))
+        helpers.RenderCenteredText(timerDisplay, screenSize.X - (screenSize.X  * TOP_HUD_WIDTH), TOP_HUD_OFFSET, TOP_HUD_FONT_SIZE, KColor(1, 0, 0, hudOpacity))
     end
 end)
 
 minesweeperMod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
-    if not minesweeperData.hasWon and not minesweeperData.hasLost then
-        if Isaac.GetFrameCount() % 60 == 0 then
-            minesweeperData.timer = minesweeperData.timer + 1
-        end
-    end
-
-    if minesweeper.HasWon(minesweeperData.grid) then
-        local allFinished = true
-        helpers.ForEachPlayer(function(p)
-            if not p:IsExtraAnimationFinished() then
-                allFinished = false
-            end
-        end)
-
-        if allFinished then
-            minesweeperData.hasWon = true
-            minesweeperHUDAnimations.smiley:Play("Cool")
-        end
-    end
-
-    helpers.ForEachPlayer(function(p, data)
-        if data.isUsingShovel and p:IsExtraAnimationFinished() then
-            data.isUsingShovel = nil
-
-            if minesweeperData.hasLost then
-                minesweeperHUDAnimations.smiley:Play("Dead")
-            else
-                minesweeperHUDAnimations.smiley:Play("Happy")
+    if helpers.IsInChallenge() then
+        if not minesweeperData.hasWon and not minesweeperData.hasLost then
+            if Isaac.GetFrameCount() % 60 == 0 then
+                minesweeperData.timer = minesweeperData.timer + 1
             end
         end
-    end)
+
+        if not minesweeperData.hasWon and minesweeper.HasWon(minesweeperData.grid) then
+            local allFinished = true
+            helpers.ForEachPlayer(function(p)
+                if not p:IsExtraAnimationFinished() then
+                    allFinished = false
+                end
+            end)
+
+            if allFinished then
+                helpers.CloseDoors()
+                minesweeperData.hasWon = true
+                minesweeperHUDAnimations.smiley:Play("Cool")
+                Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_TROPHY, 0, Game():GetRoom():GetCenterPos(), Vector.Zero, nil)
+            end
+        end
+
+        if minesweeperData.hasWon then
+            helpers.ForEachPlayer(function(p, data)
+                if data.isUsingShovel and p:IsExtraAnimationFinished() then
+                    data.isUsingShovel = nil
+
+                    if minesweeperData.hasLost then
+                        minesweeperHUDAnimations.smiley:Play("Dead")
+                    else
+                        minesweeperHUDAnimations.smiley:Play("Happy")
+                    end
+                end
+            end)
+        end
+    end
 end)
+
+minesweeperMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, function(_, effect)
+    local sprite = effect:GetSprite()
+
+    if sprite:IsFinished("Emerge") then
+        sprite:Play("Pulse")
+    end
+
+    if sprite:IsFinished("Pulse") then
+        helpers.ExplodeRoom()
+        effect:Remove()
+    end
+end, Isaac.GetEntityVariantByName("Minesweeper Mine"))
+
+minesweeperMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, function(_, effect)
+    local sprite = effect:GetSprite()
+
+    if sprite:IsFinished("Emerge") then
+
+        sprite:Play("Idle")
+    end
+
+    if sprite:IsFinished("Exit") then
+        effect:Remove()
+    end
+end, Isaac.GetEntityVariantByName("Minesweeper Flag"))

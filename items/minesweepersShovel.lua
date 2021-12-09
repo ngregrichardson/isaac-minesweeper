@@ -18,11 +18,11 @@ local function MC_USE_ITEM(_, type, rng, p)
         -- spawn bombs
         minesweeperData.hasLost = true
         helpers.CloseDoors()
-        helpers.ExplodeRoom()
     else
         minesweeper.RevealNeighboringZeros(minesweeperData.grid, currentCell)
         currentCell.isRevealed = true
     end
+    helpers.RevealFloorTile()
 
     p:GetData().isUsingShovel = true
     minesweeperHUDAnimations.smiley:Play("Scared")

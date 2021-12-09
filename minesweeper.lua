@@ -156,7 +156,7 @@ end
 
 function M.RevealNeighboringZeros(grid, cell)
     if not cell.isMine then
-        if cell and not cell.isRevealed then
+        if cell and not cell.isRevealed and not cell.isFlagged then
             cell.isRevealed = true
             if cell.touchingMines == 0 then
                 if cell.x > 1 then

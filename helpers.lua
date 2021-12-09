@@ -47,6 +47,7 @@ end
 function H.CloseDoors()
     local doors = Isaac.FindByType(678, 0, 0)
     for _, door in pairs(doors) do
+        Game():GetRoom():GetGridEntityFromPos(door.Position).CollisionClass = GridCollisionClass.COLLISION_WALL
         door:GetSprite():Play("Close")
         door:GetData().isClosed = true
     end
@@ -68,8 +69,11 @@ end
 
 function H.ExplodeRoom()
     minesweeperHUDAnimations.smiley:Play("Dead")
-    for i = 0, 1000 do
-        Isaac.ExecuteCommand("spawn 4.4")
+    for i = 0, Game():GetNumPlayers() - 1 do
+        local p = Isaac.GetPlayer(i)
+        Game():GetRoom():MamaMegaExplosion(H.GetMine().Position)
+        Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.BOMB_EXPLOSION, 0, p.Position, Vector.Zero, H.GetMine())
+        p:TakeDamage(40, 0, EntityRef(H.GetMine()), 0)
     end
 end
 
@@ -96,6 +100,73 @@ function H.RegisterSprite(anm2Root, sprRoot, anmName)
 	sprite:LoadGraphics()
 
 	return sprite
+end
+
+function H.RevealFloorTile()
+    local tile
+    for _, entity in pairs(Isaac.GetRoomEntities()) do
+        if entity.Type == Isaac.GetEntityTypeByName("Minesweeper Floor") then
+            tile = entity
+        end
+    end
+
+    if tile then
+        local sprite = tile:GetSprite()
+        local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
+
+        if currentCell.isMine then
+            Isaac.Spawn(EntityType.ENTITY_EFFECT, Isaac.GetEntityVariantByName("Minesweeper Mine"), 0, tile.Position, Vector.Zero, nil)
+        else
+            if currentCell.touchingMines > 0 then
+                sprite:ReplaceSpritesheet(1, "gfx/floor"..currentCell.touchingMines..".png")
+                sprite:LoadGraphics()
+                sprite:Play("Revealing")
+            end
+        end
+    end
+end
+
+function H.GetMine()
+    local mine
+    for _, entity in pairs(Isaac.GetRoomEntities()) do
+        if entity.Variant == Isaac.GetEntityVariantByName("Minesweeper Mine") then
+            mine = entity
+        end
+    end
+
+    return mine
+end
+
+function H.GetFlag()
+    local flag
+    for _, entity in pairs(Isaac.GetRoomEntities()) do
+        if entity.Variant == Isaac.GetEntityVariantByName("Minesweeper Flag") then
+            flag = entity
+        end
+    end
+
+    return flag
+end
+
+function H.GetFrameCount(sprite)
+    local newSprite = Sprite()
+    newSprite:Load(sprite:GetFilename())
+    newSprite:Play(sprite:GetAnimation())
+    local currentFrame = newSprite:GetFrame()
+    local lastFrame = 0
+
+    newSprite:SetLastFrame()
+    newSprite:Update()
+    lastFrame = newSprite:GetFrame()
+    newSprite:SetFrame(currentFrame)
+    newSprite:Update()
+
+    return lastFrame
+end
+
+function H.IsInChallenge()
+    local challengeId = Isaac.GetChallengeIdByName("Minesweeper")
+    return Isaac.GetChallenge() == challengeId
 end
 
 return H
