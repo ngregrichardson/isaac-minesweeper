@@ -5,4 +5,10 @@
   <entity anm2path="floor_tiles.anm2" id="679" name="Minesweeper Floor" baseHP="0" variant="0" subtype="0" numGridCollisionPoints="0" friction="0" collisionRadius="0" >
     <gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0" />
   </entity>
+  <entity anm2path="mine.anm2" id="1000" name="Minesweeper Mine" baseHP="0" variant="1836" subtype="0" numGridCollisionPoints="0" friction="0" collisionRadius="0" >
+    <gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0" />
+  </entity>
+  <entity anm2path="flag.anm2" id="1000" name="Minesweeper Flag" baseHP="0" variant="6987" subtype="0" numGridCollisionPoints="0" friction="0" collisionRadius="0" >
+    <gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0" />
+  </entity>
 </entities>

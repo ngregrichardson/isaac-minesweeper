@@ -1,0 +1,5 @@
+<challenges version="1">
+  <challenge name="Minesweeper"
+      redhp="-5"
+  />
+</challenges>
