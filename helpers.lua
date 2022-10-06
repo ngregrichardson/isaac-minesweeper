@@ -1,4 +1,3 @@
-
 local json = include("json")
 local H = {}
 
@@ -83,23 +82,23 @@ end
 
 function H.GetScreenSizeVector()
     local room = Game():GetRoom()
-    local pos = room:WorldToScreenPosition(Vector(0,0)) - room:GetRenderScrollOffset() - Game().ScreenShakeOffset
-    
+    local pos = room:WorldToScreenPosition(Vector(0, 0)) - room:GetRenderScrollOffset() - Game().ScreenShakeOffset
+
     local rx = pos.X + 60 * 26 / 40
     local ry = pos.Y + 140 * (26 / 40)
-    
-    return Vector(rx*2 + 13*26, ry*2 + 7*26)
+
+    return Vector(rx * 2 + 13 * 26, ry * 2 + 7 * 26)
 end
 
 function H.RegisterSprite(anm2Root, sprRoot, anmName)
-	local sprite = Sprite()
-	sprite:Load(anm2Root, true)
-	sprite:Play(anmName and anmName or sprite:GetDefaultAnimationName(), true)
-	sprite:Update()
-	if sprRoot then sprite:ReplaceSpritesheet(0, sprRoot) end
-	sprite:LoadGraphics()
+    local sprite = Sprite()
+    sprite:Load(anm2Root, true)
+    sprite:Play(anmName and anmName or sprite:GetDefaultAnimationName(), true)
+    sprite:Update()
+    if sprRoot then sprite:ReplaceSpritesheet(0, sprRoot) end
+    sprite:LoadGraphics()
 
-	return sprite
+    return sprite
 end
 
 function H.RevealFloorTile()
@@ -115,10 +114,11 @@ function H.RevealFloorTile()
         local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
 
         if currentCell.isMine then
-            Isaac.Spawn(EntityType.ENTITY_EFFECT, Isaac.GetEntityVariantByName("Minesweeper Mine"), 0, tile.Position, Vector.Zero, nil)
+            Isaac.Spawn(EntityType.ENTITY_EFFECT, Isaac.GetEntityVariantByName("Minesweeper Mine"), 0, tile.Position,
+                Vector.Zero, nil)
         else
             if currentCell.touchingMines > 0 then
-                sprite:ReplaceSpritesheet(1, "gfx/floor"..currentCell.touchingMines..".png")
+                sprite:ReplaceSpritesheet(1, "gfx/floor" .. currentCell.touchingMines .. ".png")
                 sprite:LoadGraphics()
                 sprite:Play("Revealing")
             end

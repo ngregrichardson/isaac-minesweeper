@@ -33,7 +33,7 @@ end
 return {
     Name = Name,
     Tag = Tag,
-	Id = Id,
+    Id = Id,
     callbacks = {
         {
             ModCallbacks.MC_USE_ITEM,
