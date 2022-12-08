@@ -9,6 +9,14 @@ local minesweeper = include("minesweeper.lua")
 
 local rng = RNG()
 
+minesweeperMod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
+    if helpers.IsInChallenge() and Game():IsPaused() then
+        local centerScreen = Vector(Isaac.GetScreenWidth() / 2, Isaac.GetScreenHeight() / 2)
+        font:DrawString("You will die lmao", centerScreen.X / 2, Isaac.GetScreenHeight() - font:GetLineHeight() - 10,
+            KColor(1, 1, 1, 1), centerScreen.X, true)
+    end
+end)
+
 for _, item in pairs(items) do
     if item.callbacks then
         for _, callback in pairs(item.callbacks) do
@@ -18,7 +26,7 @@ for _, item in pairs(items) do
 end
 
 local SIZE = 10
-local NUM_MINES = 99
+local NUM_MINES = 4
 
 local TOP_HUD_OFFSET = 35
 local TOP_HUD_WIDTH = 1 / 2.5
