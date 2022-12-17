@@ -67,27 +67,23 @@ function H.ForEachPlayer(callback, collectibleId)
 end
 
 function H.ExplodeRoom()
-    minesweeperHUDAnimations.smiley:Play("Dead")
+    minesweeperMod.minesweeperHUDAnimations.smiley:Play("Dead")
+    Game():GetRoom():MamaMegaExplosion(H.GetMine().Position)
     for i = 0, Game():GetNumPlayers() - 1 do
         local p = Isaac.GetPlayer(i)
-        Game():GetRoom():MamaMegaExplosion(H.GetMine().Position)
+        p:TakeDamage(1, DamageFlag.DAMAGE_EXPLOSION, EntityRef(H.GetMine()), 0)
+        p:Die()
         Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.BOMB_EXPLOSION, 0, p.Position, Vector.Zero, H.GetMine())
-        p:TakeDamage(40, 0, EntityRef(H.GetMine()), 0)
     end
 end
 
 function H.RenderCenteredText(content, x, y, scale, color)
-    font:DrawStringScaled(content, x - 1, y - font:GetLineHeight() * 2, scale, scale, color, 1, true)
+    minesweeperMod.font:DrawStringScaled(content, x - 1, y - minesweeperMod.font:GetLineHeight() * 2, scale, scale, color
+        , 1, true)
 end
 
 function H.GetScreenSizeVector()
-    local room = Game():GetRoom()
-    local pos = room:WorldToScreenPosition(Vector(0, 0)) - room:GetRenderScrollOffset() - Game().ScreenShakeOffset
-
-    local rx = pos.X + 60 * 26 / 40
-    local ry = pos.Y + 140 * (26 / 40)
-
-    return Vector(rx * 2 + 13 * 26, ry * 2 + 7 * 26)
+    return Vector(Isaac.GetScreenWidth() / 2, Isaac.GetScreenHeight() / 2)
 end
 
 function H.RegisterSprite(anm2Root, sprRoot, anmName)
@@ -111,11 +107,15 @@ function H.RevealFloorTile()
 
     if tile then
         local sprite = tile:GetSprite()
-        local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
+        local currentCell = minesweeperMod.data.grid[minesweeperMod.data.currentRoom.y][
+            minesweeperMod.data.currentRoom.x]
 
         if currentCell.isMine then
             Isaac.Spawn(EntityType.ENTITY_EFFECT, Isaac.GetEntityVariantByName("Minesweeper Mine"), 0, tile.Position,
                 Vector.Zero, nil)
+            if minesweeperMod.rng:RandomInt(100) < 1 then
+                SFXManager():Play(Isaac.GetSoundIdByName("GusDeath"))
+            end
         else
             if currentCell.touchingMines > 0 then
                 sprite:ReplaceSpritesheet(1, "gfx/floor" .. currentCell.touchingMines .. ".png")
@@ -165,8 +165,23 @@ function H.GetFrameCount(sprite)
 end
 
 function H.IsInChallenge()
-    local challengeId = Isaac.GetChallengeIdByName("Minesweeper")
-    return Isaac.GetChallenge() == challengeId
+    for name in pairs(minesweeperMod.challenges) do
+        local id = Isaac.GetChallengeIdByName(name)
+
+        if Isaac.GetChallenge() == id then
+            return true
+        end
+    end
+end
+
+function H.GetChallengeDetails()
+    for name, details in pairs(minesweeperMod.challenges) do
+        local id = Isaac.GetChallengeIdByName(name)
+
+        if Isaac.GetChallenge() == id then
+            return details
+        end
+    end
 end
 
 return H

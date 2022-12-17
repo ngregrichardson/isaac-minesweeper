@@ -1,5 +1,8 @@
 <challenges version="1">
-  <challenge name="Minesweeper"
-      redhp="-5"
-  />
+  <challenge name="Minesweeper 8x8" />
+  <challenge name="Minesweeper 9x9" />
+  <challenge name="Minesweeper 10x10" />
+  <challenge name="Minesweeper 15x13" />
+  <challenge name="Minesweeper 16x16" />
+  <challenge name="Minesweeper 26x16" />
 </challenges>

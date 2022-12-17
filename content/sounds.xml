@@ -1,0 +1,5 @@
+<sounds root="sfx/">
+    <sound name="GusDeath">
+        <sample weight="1" path="gus_death.wav" />
+    </sound>
+</sounds>

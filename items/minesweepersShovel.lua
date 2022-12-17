@@ -6,6 +6,8 @@ local Tag = "minesweepersShovel"
 local Id = Isaac.GetItemIdByName(Name)
 
 local function MC_USE_ITEM(_, type, rng, p)
+    local minesweeperData = minesweeperMod.data
+    local minesweeperHUDAnimations = minesweeperMod.minesweeperHUDAnimations
     local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
     if currentCell.isRevealed or minesweeperData.hasWon or minesweeperData.hasLost then return end
 

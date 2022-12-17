@@ -28,35 +28,35 @@ local function CountUnopenedCells(grid)
     return cells
 end
 
-local function GenerateMineLayout(size, numMines)
-    local rng = RNG()
-    
+function M.GetRandomCell(width, height)
+    return {
+        x = minesweeperMod.rng:RandomInt(width) + 1,
+        y = minesweeperMod.rng:RandomInt(height) + 1
+    }
+end
+
+local function GenerateMineLayout(width, height, numMines)    
     local mineLocations = {}
     
     local i = 1
-
-    Isaac.DebugString("starting with " .. numMines .. " mines")
     
     while i <= numMines do
-        local xLocation = rng:RandomInt(size) + 1
-        local yLocation = rng:RandomInt(size) + 1
-
-        Isaac.DebugString("x: "..xLocation.." | y: "..yLocation)
+        local cell = M.GetRandomCell(width, height)
         
         if #mineLocations == 0 then
-            table.insert(mineLocations, { x = xLocation, y = yLocation })
+            table.insert(mineLocations, cell)
             i = i + 1
         else
             local found = false
             for _, value in pairs(mineLocations) do
-                if xLocation == value.x and yLocation == value.y then
+                if cell.x == value.x and cell.y == value.y then
                     found = true
                     break
                 end
             end
             
             if not found then
-                table.insert(mineLocations, { x = xLocation, y = yLocation })
+                table.insert(mineLocations, cell)
                 i = i + 1
             end
         end
@@ -72,23 +72,22 @@ local function CreateBlankCell(x, y)
         isFlagged = false,
         isMine = false,
         isRevealed = false,
-        touchingMines = 0,
-        hasVisited = false
+        touchingMines = 0
     }
 end
 
-function M.GenerateMinesweeperGrid(size, numMines)
+function M.GenerateMinesweeperGrid(width, height, numMines)
     local grid = {}
     
-    for i = 1, size do
+    for i = 1, height do
         local col = {}
-        for j = 1, size do
+        for j = 1, width do
             table.insert(col, CreateBlankCell(j, i))
         end
         table.insert(grid, col)
     end
     
-    local mineLocations = GenerateMineLayout(size, numMines)
+    local mineLocations = GenerateMineLayout(width, height, numMines)
     
     for _, cell in pairs(mineLocations) do
         local mineCell = grid[cell.y][cell.x]
@@ -98,8 +97,8 @@ function M.GenerateMinesweeperGrid(size, numMines)
         
         local hasLeftCells = mineCell.x > 1
         local hasTopCells = mineCell.y > 1
-        local hasRightCells = mineCell.x < size
-        local hasBottomCells = mineCell.y < size
+        local hasRightCells = mineCell.x < width
+        local hasBottomCells = mineCell.y < height
         
         if hasLeftCells then
             table.insert(neighboringCells, grid[mineCell.y][mineCell.x - 1])
