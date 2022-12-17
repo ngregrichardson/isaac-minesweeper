@@ -35,29 +35,31 @@ function M.GetRandomCell(width, height)
     }
 end
 
-local function GenerateMineLayout(width, height, numMines)    
+local function GenerateMineLayout(width, height, numMines, currentRoom)    
     local mineLocations = {}
     
     local i = 1
     
     while i <= numMines do
         local cell = M.GetRandomCell(width, height)
-        
-        if #mineLocations == 0 then
-            table.insert(mineLocations, cell)
-            i = i + 1
-        else
-            local found = false
-            for _, value in pairs(mineLocations) do
-                if cell.x == value.x and cell.y == value.y then
-                    found = true
-                    break
-                end
-            end
-            
-            if not found then
+
+        if cell.x ~= currentRoom.x or cell.y ~= currentRoom.y then
+            if #mineLocations == 0 then
                 table.insert(mineLocations, cell)
                 i = i + 1
+            else
+                local found = false
+                for _, value in pairs(mineLocations) do
+                    if cell.x == value.x and cell.y == value.y then
+                        found = true
+                        break
+                    end
+                end
+                
+                if not found then
+                    table.insert(mineLocations, cell)
+                    i = i + 1
+                end
             end
         end
     end
@@ -76,7 +78,21 @@ local function CreateBlankCell(x, y)
     }
 end
 
-function M.GenerateMinesweeperGrid(width, height, numMines)
+function M.GenerateBlankGrid(width, height)
+    local grid = {}
+
+    for i = 1, height do
+        local col = {}
+        for j = 1, width do
+            table.insert(col, CreateBlankCell(j, i))
+        end
+        table.insert(grid, col)
+    end
+
+    return grid
+end
+
+function M.GenerateMinesweeperGrid(width, height, numMines, currentRoom)
     local grid = {}
     
     for i = 1, height do
@@ -87,7 +103,7 @@ function M.GenerateMinesweeperGrid(width, height, numMines)
         table.insert(grid, col)
     end
     
-    local mineLocations = GenerateMineLayout(width, height, numMines)
+    local mineLocations = GenerateMineLayout(width, height, numMines, currentRoom)
     
     for _, cell in pairs(mineLocations) do
         local mineCell = grid[cell.y][cell.x]
@@ -150,7 +166,7 @@ function M.CalculateScore(grid)
         end
     end
 
-    return score
+    return math.max(score, 0)
 end
 
 function M.RevealNeighboringZeros(grid, cell)

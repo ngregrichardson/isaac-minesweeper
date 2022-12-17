@@ -8,7 +8,15 @@ local Id = Isaac.GetItemIdByName(Name)
 local function MC_USE_ITEM(_, type, rng, p)
     local minesweeperData = minesweeperMod.data
     local minesweeperHUDAnimations = minesweeperMod.minesweeperHUDAnimations
+
+    if not minesweeperData.hasTouched then
+        minesweeperData.hasTouched = true
+        minesweeperData.grid = helpers.InitializeGridSprites(minesweeper.GenerateMinesweeperGrid(minesweeperData.width,
+            minesweeperData.height, minesweeperData.mines, minesweeperData.currentRoom))
+    end
+
     local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
+
     if currentCell.isRevealed or minesweeperData.hasWon or minesweeperData.hasLost then return end
 
     if currentCell.isFlagged then

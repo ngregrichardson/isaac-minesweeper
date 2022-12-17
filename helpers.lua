@@ -184,4 +184,15 @@ function H.GetChallengeDetails()
     end
 end
 
+function H.InitializeGridSprites(grid)
+    for _, col in pairs(grid) do
+        for _, cell in pairs(col) do
+            cell.mapCellSprite = H.RegisterSprite("gfx/ui/map_background.anm2")
+            cell.mapCellIconSprite = H.RegisterSprite("gfx/ui/map_icon.anm2")
+        end
+    end
+
+    return grid
+end
+
 return H

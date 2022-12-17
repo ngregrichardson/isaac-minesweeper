@@ -70,7 +70,8 @@ minesweeperMod.data = {
     hasSpawnedTrophy = false,
     width = 0,
     height = 0,
-    mines = 0
+    mines = 0,
+    hasTouched = false
 }
 
 minesweeperMod.minesweeperHUDAnimations = {
@@ -88,17 +89,18 @@ local directionSpawnPositions = {
     Vector(320, 160)
 }
 
-local function InitializeGrid()
+local function InitializeStartupGrid()
     local challenge = helpers.GetChallengeDetails()
 
     minesweeperData.width = challenge.width
     minesweeperData.height = challenge.height
     minesweeperData.mines = challenge.mines
-    minesweeperData.grid = minesweeper.GenerateMinesweeperGrid(minesweeperData.width, minesweeperData.height,
-        minesweeperData.mines)
+    minesweeperData.grid = helpers.InitializeGridSprites(minesweeper.GenerateBlankGrid(minesweeperData.width,
+        minesweeperData.height))
     minesweeperData.timer = 0
     minesweeperData.hasWon = false
     minesweeperData.hasLost = false
+    minesweeperData.hasTouched = false
     minesweeperData.currentRoom = minesweeper.GetRandomCell(minesweeperData.width, minesweeperData.height)
 end
 
@@ -134,16 +136,9 @@ local function InitializeGame(isContinued)
         minesweeperMod.data = saveData
         minesweeperData = minesweeperMod.data
     else
-        InitializeGrid()
+        InitializeStartupGrid()
         minesweeperData = minesweeperMod.data
         Isaac.ExecuteCommand("goto d." .. "2500")
-    end
-
-    for _, col in pairs(minesweeperData.grid) do
-        for _, cell in pairs(col) do
-            cell.mapCellSprite = helpers.RegisterSprite("gfx/ui/map_background.anm2")
-            cell.mapCellIconSprite = helpers.RegisterSprite("gfx/ui/map_icon.anm2")
-        end
     end
 
     for _ = 0, minesweeperData.width * minesweeperData.height do
@@ -172,7 +167,7 @@ local function InitializeRoom()
     end
 
     if not minesweeperData.grid then
-        InitializeGrid()
+        InitializeStartupGrid()
     end
 
     local currentCell = minesweeperData.grid[minesweeperData.currentRoom.y][minesweeperData.currentRoom.x]
@@ -484,7 +479,7 @@ end)
 
 minesweeperMod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
     if helpers.IsInChallenge() then
-        if not minesweeperData.hasWon and not minesweeperData.hasLost then
+        if not minesweeperData.hasWon and not minesweeperData.hasLost and minesweeperData.hasTouched then
             if Isaac.GetFrameCount() % 60 == 0 then
                 minesweeperData.timer = minesweeperData.timer + 1
             end
