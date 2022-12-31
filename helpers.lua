@@ -97,31 +97,40 @@ function H.RegisterSprite(anm2Root, sprRoot, anmName)
     return sprite
 end
 
+function H.GetCellFloorFileName(cell)
+    local floorTileSeed = cell.floorTileSeed
+
+    if cell.touchingMines > 0 then
+        floorTileSeed = (cell.floorTileSeed % 2) + 1
+    end
+
+    return "gfx/floor" .. cell.touchingMines .. "_" .. floorTileSeed .. ".png"
+end
+
 function H.RevealFloorTile()
-    local tile
+    local floorTile
     for _, entity in pairs(Isaac.GetRoomEntities()) do
         if entity.Type == Isaac.GetEntityTypeByName("Minesweeper Floor") then
-            tile = entity
+            floorTile = entity
         end
     end
 
-    if tile then
-        local sprite = tile:GetSprite()
+    if floorTile then
         local currentCell = minesweeperMod.data.grid[minesweeperMod.data.currentRoom.y][
             minesweeperMod.data.currentRoom.x]
 
         if currentCell.isMine then
-            Isaac.Spawn(EntityType.ENTITY_EFFECT, Isaac.GetEntityVariantByName("Minesweeper Mine"), 0, tile.Position,
+            Isaac.Spawn(EntityType.ENTITY_EFFECT, Isaac.GetEntityVariantByName("Minesweeper Mine"), 0, floorTile.Position
+                ,
                 Vector.Zero, nil)
             if minesweeperMod.rng:RandomInt(100) < 1 then
                 SFXManager():Play(Isaac.GetSoundIdByName("GusDeath"))
             end
         else
-            if currentCell.touchingMines > 0 then
-                sprite:ReplaceSpritesheet(1, "gfx/floor" .. currentCell.touchingMines .. ".png")
-                sprite:LoadGraphics()
-                sprite:Play("Revealing")
-            end
+            local floorTileSprite = floorTile:GetSprite()
+            floorTileSprite:ReplaceSpritesheet(1, H.GetCellFloorFileName(currentCell))
+            floorTileSprite:LoadGraphics()
+            floorTileSprite:Play("Revealed")
         end
     end
 end
@@ -189,6 +198,7 @@ function H.InitializeGridSprites(grid)
         for _, cell in pairs(col) do
             cell.mapCellSprite = H.RegisterSprite("gfx/ui/map_background.anm2")
             cell.mapCellIconSprite = H.RegisterSprite("gfx/ui/map_icon.anm2")
+            cell.floorTileSeed = minesweeperMod.rng:RandomInt(10) + 1
         end
     end
 

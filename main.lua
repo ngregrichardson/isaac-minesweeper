@@ -213,9 +213,9 @@ local function InitializeRoom()
     floorTile:ClearEntityFlags(EntityFlag.FLAG_APPEAR)
 
     if currentCell.isRevealed then
-        if not currentCell.isMine and currentCell.touchingMines > 0 then
+        if not currentCell.isMine then
             local floorTileSprite = floorTile:GetSprite()
-            floorTileSprite:ReplaceSpritesheet(1, "gfx/floor" .. currentCell.touchingMines .. ".png")
+            floorTileSprite:ReplaceSpritesheet(1, helpers.GetCellFloorFileName(currentCell))
             floorTileSprite:LoadGraphics()
             floorTileSprite:Play("Revealed")
         end
